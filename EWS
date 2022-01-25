@@ -1,0 +1,71 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Exchange.WebServices.Data;
+using System.IO;
+using System.Net;
+
+
+namespace ING_Us_ugi_dla_Biznesu.ZRPA_.HU_LORO {
+
+
+	public class EWS {
+
+		public ExchangeService service;
+		public EmailMessage message1;
+		public Mailbox mailbox;
+
+		public EWS() {
+
+			service = new ExchangeService(ExchangeVersion.Exchange2013_SP1);
+			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+			service.Url = new Uri("https://outlook.office365.com/EWS/Exchange.asmx");		
+
+
+
+		}
+
+		public void CreateMail() {
+			message1 = new EmailMessage(service);
+
+		}
+
+		public void InsertSubject(string subject) {
+			message1.Subject = subject;
+		}
+
+		public void InsertBody(string mailBody) {
+			message1.Body = new MessageBody(BodyType.HTML, mailBody);
+
+		}
+
+		public void InsertRecipent(string recipent) {
+			message1.ToRecipients.Add(recipent);
+		}
+		public void InsertRecipentBCC(string recipent) {
+			message1.BccRecipients.Add(recipent);
+		}
+
+		public void InsertAttachement(string path) {
+			message1.Attachments.AddFileAttachment(path);
+		}
+		public void InsertImage(string imageName, string path, int AttachementNr) {
+			message1.Attachments.AddFileAttachment(imageName, path);
+			message1.Attachments[AttachementNr].IsInline = true;
+			message1.Attachments[AttachementNr].ContentId = imageName;
+
+		}
+
+		public void Send(string sendAs) {
+			message1.From = new EmailAddress(sendAs);
+			message1.SendAndSaveCopy();
+		}
+		public void Send() {
+			message1.Sensitivity = Sensitivity.Confidential;
+			message1.Send();
+		}
+		public void SendAndSave() {
+			message1.SendAndSaveCopy();
+		}
+	}
+}
