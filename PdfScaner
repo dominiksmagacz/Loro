@@ -1,0 +1,293 @@
+using System;
+using System.Text;
+using System.IO;
+using iTextSharp;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.pdf.parser;
+using System.Net;
+using System.Collections;
+using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.IO.Compression;
+using System.Data.OleDb;
+using OutlookApp = Microsoft.Office.Interop.Outlook.Application;
+using Microsoft.Office.Interop.Outlook;
+using Microsoft.VisualBasic;
+using System.Windows.Forms;
+using ING_Us_ugi_dla_Biznesu.ZRPA_.HU_LORO;
+
+
+
+
+namespace ING_Us_ugi_dla_Biznesu.ZRPA_.HU_LORO
+{
+    public class PdfMaker
+    {
+
+		static OutlookApp o;
+		static MAPIFolder folder;
+		static Items mails;
+		static MailItem mail;
+
+		private static OutlookApp outlookApp = new OutlookApp();
+
+
+		public static void Zipper(string startPath, string zipPath){
+
+
+			ZipFile.CreateFromDirectory(startPath, zipPath);
+		}
+
+
+		public static void copyStatements (string statementPath, string destPath, string invoicesPath){
+
+			DirectoryInfo d = new DirectoryInfo(statementPath);
+			FileInfo[] Files = d.GetFiles("*.pdf");
+			DirectoryInfo diInvoice = new DirectoryInfo(invoicesPath);
+			FileInfo[] FilesInvoices = diInvoice.GetFiles("*.pdf");
+
+			foreach(FileInfo file in Files ){
+				string client = file.Name.ToUpper();
+				string str = "";
+				str = file.Name.ToUpper();
+				System.IO.File.Copy(file.FullName,  destPath+str, true);
+				str = str.Substring(0, str.Length -4);
+				System.IO.File.Copy(file.FullName,  destPath+file.Name.ToUpper(), true);
+				DirectoryInfo di = Directory.CreateDirectory(destPath+str);
+				System.IO.File.Copy(file.FullName,  destPath+str+@"\"+file.Name.ToUpper(), true);
+				foreach(FileInfo fileInvoice in FilesInvoices){
+					System.Console.WriteLine(fileInvoice.Name.ToUpper());
+					System.Console.WriteLine(client);
+					if(fileInvoice.Name.ToUpper().Contains(client.Substring(0, str.Length -4))){
+						string invoice = fileInvoice.Name.Substring(0, str.Length -4);
+						System.IO.File.Copy(fileInvoice.FullName,  destPath+file.Name.ToUpper(), true);
+						System.IO.File.Copy(file.FullName,  destPath+str+@"\"+invoice.ToUpper()+"-CASH.pdf", true);
+						if(!(File.Exists(destPath+str+".zip")))
+							ZipFile.CreateFromDirectory(destPath+str, destPath+str+".zip");
+						System.IO.File.Delete(destPath+str+@"\"+file.Name.ToUpper());
+						System.IO.File.Delete(destPath+str+@"\"+invoice.ToUpper()+"-CASH.pdf");
+					}
+				}
+			}
+		}
+
+		public static void CopyFiles(string sourcePath, string destPath){
+
+
+			DirectoryInfo d = new DirectoryInfo(sourcePath);
+			FileInfo[] Files = d.GetFiles("*.pdf");
+
+			foreach(FileInfo file in Files )
+				{
+					if(!(file.Name.Contains("nowy"))){
+						string str = "";
+						str = file.Name;
+						System.IO.File.Copy(file.FullName,  destPath+str, true);
+						str = str.Substring(0, str.Length -4);
+						DirectoryInfo di = Directory.CreateDirectory(destPath+str);
+						System.IO.File.Copy(file.FullName,  destPath+str+@"\"+file.Name, true);
+						System.IO.File.Copy(file.FullName,  destPath+str+@"\"+str+"-cash.pdf", true);
+						ZipFile.CreateFromDirectory(destPath+str, destPath+str+".zip");
+
+						System.IO.File.Delete(destPath+str+@"\"+file.Name);
+						System.IO.File.Delete(destPath+str+@"\"+str+"-cash.pdf");
+						Directory.Delete(destPath+str);
+						System.Console.WriteLine(destPath+str);
+						System.Console.WriteLine(file.FullName);
+						System.Console.WriteLine(destPath+str+".zip");
+					System.Console.WriteLine(destPath+str+@"\"+file.Name);
+					System.Console.WriteLine(destPath+str+@"\"+str+"-cash.pdf");
+						System.Console.ReadKey();
+					}
+				}
+		}
+
+		public static void PdfToTxt(string sourcePath, string outPath){
+
+			int pagesToScan = 20;
+			string strText = string.Empty;
+			try {
+				PdfReader reader = new PdfReader(sourcePath);
+
+				for (int page = 1; page <= pagesToScan; page++) //(int page = 1; page <= reader.NumberOfPages; page++) <- for scanning all the pages in A PDF
+				{
+					ITextExtractionStrategy its = new iTextSharp.text.pdf.parser.LocationTextExtractionStrategy();
+					strText = PdfTextExtractor.GetTextFromPage(reader, page, its);
+
+					strText = Encoding.UTF8.GetString(ASCIIEncoding.Convert(Encoding.Default, Encoding.UTF8, Encoding.Default.GetBytes(strText)));
+					//creating the string array and storing the PDF line by line
+					string[] lines = strText.Split('\n');
+					foreach (string line in lines) {
+						//Creating and appending to a text file
+						using (System.IO.StreamWriter file = new System.IO.StreamWriter(outPath, true)) {
+							file.WriteLine(line);
+						}
+					}
+				}
+				reader.Close();
+			}
+			catch (System.Exception ex) {
+				Console.Write(ex);
+			}
+		}
+
+
+		public static string ReadTxt(string txtPath){
+
+			ArrayList list = new ArrayList();
+			string all = "";
+			string[] text = System.IO.File.ReadAllLines(txtPath);
+			for (int i = 0; i< text.Length; i++) {
+				System.Console.WriteLine($"{i} - {text[i]}");
+				all = all + String.Join(" ", text[i]);
+				list.Add(text[i]);
+			}
+			string result = "";
+			int length = 0;
+			if(text[3].Contains("European Investment Bank")){
+				result = "European Investment Bank";
+			}
+			else if (text[3].Contains("Oney Bank")){
+				result = "Oney Bank";
+			}
+			else if (text[3].Contains("Deloitte")){
+				result = "Deloitte";
+			}
+			else if (text[3].Contains("Aegis Triton")){
+				result = "Aegis Triton";
+			}
+			else{
+				string [] splittedName = text[3].Split(' ');
+				int startIndex = text[3].IndexOf("Fióktelepe");
+				length = text[3].Length;
+				result = text[3].Substring(startIndex+11);
+
+			}
+			return result;
+		}
+
+
+		public static int NumberOfPages (string sourcePDFpath){
+			var pdfReader = new PdfReader(sourcePDFpath);
+			int numberOfPages = pdfReader.NumberOfPages;
+			pdfReader.Close();
+			return numberOfPages;
+		}
+
+
+		public static void ExtractPages(string sourcePDFpath, string outputPDFpath, int startpage, int endpage){
+			  var pdfReader = new PdfReader(sourcePDFpath);
+				int numberOfPages = pdfReader.NumberOfPages;
+			  try{
+			    pdfReader.SelectPages($"{startpage}-{endpage}");
+				TakePdfText(sourcePDFpath, startpage, endpage, outputPDFpath);
+			    using (var fs = new FileStream(outputPDFpath, FileMode.Create, FileAccess.Write)){
+			      PdfStamper stamper = null;
+			      try{
+			        stamper = new PdfStamper(pdfReader, fs);
+			      }
+			      finally{
+			        stamper?.Close();
+			      }
+			    }
+			  }
+			  finally{
+			    pdfReader.Close();
+			  }
+			}
+
+
+			public static string takeAdressEmail (string str, OleDbConnection Connection){
+
+
+	             	OleDbCommand Command2 = new OleDbCommand("SELECT [E-mai address] FROM [Active$] WHERE [Active] LIKE '%" + str + "%'", Connection);
+	                OleDbDataReader reader = Command2.ExecuteReader();
+	                if (reader.Read()) {
+	                           string emailAdress = reader["E-mai address"].ToString();
+	                           return emailAdress;
+	                }
+	                else
+	                           return "no email adress";
+
+			}
+
+
+			public static void prepareMessage (string emailAdress, string str, string pathZipFile, string mounthAndYear){
+
+				EWS ew = new EWS();
+				ew.CreateMail();
+
+				string text = "";
+				text += "Dear Client,";
+				text += "\n \n<br>";
+				text += "Please find enclosed the monthly invoice and attachment for your outgoing transactions in relation to your HUF nostro account.";
+				text += "\n<br>";
+				text += "Please reply to this message if you wish us to update the invoice receipent list of your fine entity.";
+				text += "\n<br>";
+				text += "Should you need further information or assistance please do not hesitate to contact us at ts.operations.hu@ing.com.<br><br>";
+				text += "Kind regards,";
+				text += "\n<br>";
+				text += "ING BANK N.V.Hungary Branch ";
+
+				ew.InsertSubject("ING Hungary - Invoices for " + mounthAndYear);
+				ew.InsertBody(text);
+				ew.InsertAttachement(pathZipFile);
+				ew.InsertRecipent("Adress@mail.com");			
+				Console.WriteLine(str + " - Customer Name and Sending to: "+emailAdress);
+				ew.Send("Adress@mail.com");
+			}
+
+
+			public static void sendMail(string sourcePath, string fileWithEMailsContactPath, string mounthAndYear){
+
+
+				DirectoryInfo d = new DirectoryInfo(sourcePath);
+				FileInfo[] Files = d.GetFiles("*.zip");
+
+				string myConnection = $"Provider=Microsoft.Jet.OLEDB.4.0;Data Source={fileWithEMailsContactPath}Contact list for LORO invoices.xls;Extended Properties='Excel 8.0;HDR=YES;IMEX=1'";
+                OleDbConnection Connection = new OleDbConnection(myConnection);
+                Connection.Open();
+
+				foreach(FileInfo file in Files ){
+					string client = file.Name.ToUpper();
+					string pathZipFile = file.FullName;
+					string str = "";
+					string emailAdress = "";
+					str = file.Name.ToUpper();
+					str = str.Substring(0, str.Length -4);
+					emailAdress = takeAdressEmail(str, Connection);
+					PdfMaker.prepareMessage(emailAdress, str, pathZipFile, mounthAndYear);
+				}
+                Connection.Close();
+			}
+
+
+		public static void TakePdfText(string filePath, int start, int end, string tempPath){
+			try {
+				filePath = filePath.Replace(@"\", "/");
+				PdfReader reader = new PdfReader(filePath);
+				string outPath = tempPath + "result.txt";
+				string strText = string.Empty;
+				for (int i = start; i <= end; i++) //(int page = 1; page <= reader.NumberOfPages; page++) <- for scanning all the pages in A PDF
+				{
+					ITextExtractionStrategy its = new iTextSharp.text.pdf.parser.LocationTextExtractionStrategy();
+					strText = PdfTextExtractor.GetTextFromPage(reader, i, its);
+					strText = Encoding.UTF8.GetString(ASCIIEncoding.Convert(Encoding.Default, Encoding.UTF8, Encoding.Default.GetBytes(strText)));
+					//creating the string array and storing the PDF line by line
+					string[] lines = strText.Split('\n');
+					foreach (string line in lines) {
+						//Creating and appending to a text file
+						using (System.IO.StreamWriter file = new System.IO.StreamWriter(outPath, true)) {
+							file.WriteLine(line);
+						}
+					}
+				}
+				reader.Close();
+			}
+			catch (System.Exception ex) {
+				Console.Write(ex);
+			}
+		}
+    }
+}
