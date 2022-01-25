@@ -1,0 +1,54 @@
+using System;
+using System.Text;
+using System.Collections.Generic;
+using System.Linq;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.pdf.parser;
+using System.Collections;
+using ING_Us_ugi_dla_Biznesu.ZRPA_.HU_LORO;
+
+
+namespace ING_Us_ugi_dla_Biznesu.ZRPA_.HU_LORO {
+	class Program {
+		static void Main(string[] args) {
+
+			string sourcePath = Microsoft.VisualBasic.Interaction.InputBox(@"Enter the source path of Invoices not spllited (for example: C:\Users\invoices 202112.pdf): ","Enter Value");
+			string tempPath = Microsoft.VisualBasic.Interaction.InputBox(@"Enter the temporary direction (for example: C:\Users\): ","Enter Value");
+			string destPath = Microsoft.VisualBasic.Interaction.InputBox(@"Enter the destination of splitted pdf(for example: C:\Users\): ","Enter Value");
+			string statementPath = Microsoft.VisualBasic.Interaction.InputBox(@"Enter the path of Statements files(for example: C:\Users\): ","Enter Value");
+			string excelContactPath = Microsoft.VisualBasic.Interaction.InputBox(@"Enter the path excel with emails adresses(for example: C:\Users\): ","Enter Value");
+			
+			string txtPath = tempPath + "new.txt";
+			string mounthAndYear = Microsoft.VisualBasic.Interaction.InputBox("Enter the month and year (for example: December 2021): ", "Enter Value");
+
+			int numberOfPages = PdfMaker.NumberOfPages(@"C:\Users\HC33CL\Downloads\nowy\invoices 202112.pdf");
+			int loops = numberOfPages / 2;
+			int start = 1;
+			int end = 2;
+			for (int i = 0; i< loops; i++) {
+				if (File.Exists(txtPath)) {
+					File.Delete(txtPath);
+				}
+				using (FileStream fs = File.Create(txtPath));
+				tempPath = tempPath + "new" + i + ".pdf";
+				PdfMaker.ExtractPages(sourcePath, tempPath, start, end);  				//dzielenie pliku pdf na wiele po 2 strony
+				PdfMaker.PdfToTxt(tempPath, txtPath);									//czytamy zawartosć PDF i zrzucamy do tablicy
+				string newName = PdfMaker.ReadTxt(txtPath).Replace(@"/", "");			//Pobiera nazwę klienta z pliku txt na podstawie Pdf
+				if (File.Exists(tempPath)) {
+					File.Copy(tempPath, destPath + newName + " -cash.pdf", true);
+
+					}
+				start += 2;
+				end += 2;
+				File.Delete(txtPath);
+			}
+			PdfMaker.copyStatements(statementPath, destPath,destPath);
+
+			PdfMaker.sendMail(destPath, excelContactPath, mounthAndYear);
+        }
+    }
+}
