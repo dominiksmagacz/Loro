@@ -1,7 +1,7 @@
 # Loro
 Splitting of PDF File and ZIpping and send mail
 
-References in Loro: 
+References in Loro: <br>
   itextsharp.dll 5.5.12.0
   Microsoft.VisualBasic.dll 10.0.0.0
 References in EWS:
