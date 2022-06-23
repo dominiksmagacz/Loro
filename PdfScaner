@@ -15,12 +15,11 @@ using OutlookApp = Microsoft.Office.Interop.Outlook.Application;
 using Microsoft.Office.Interop.Outlook;
 using Microsoft.VisualBasic;
 using System.Windows.Forms;
-using ING_Us_ugi_dla_Biznesu.ZRPA_.HU_LORO;
 
 
 
 
-namespace ING_Us_ugi_dla_Biznesu.ZRPA_.HU_LORO
+namespace Progra
 {
     public class PdfMaker
     {
