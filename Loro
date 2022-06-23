@@ -9,10 +9,10 @@ using iTextSharp.text;
 using iTextSharp.text.pdf;
 using iTextSharp.text.pdf.parser;
 using System.Collections;
-using ING_Us_ugi_dla_Biznesu.ZRPA_.HU_LORO;
+using Progra;
 
 
-namespace ING_Us_ugi_dla_Biznesu.ZRPA_.HU_LORO {
+namespace Progra {
 	class Program {
 		static void Main(string[] args) {
 
